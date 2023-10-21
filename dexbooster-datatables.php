@@ -23,10 +23,10 @@
 add_shortcode('dexbooster-datatables', function ($attributes) {
     if (!isset($attributes['json-url'])) return '<strong>invalid short-code usage, use:</strong> [dexbooster-datatables json-url="https://ffxkccymzr.a.pinggy.online/data_arbitrum"]';
 
-    wp_register_style('datatables', 'https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css');
+    wp_register_style('datatables', 'https://dexbooster.io/wp-content/plugins/ht-mega-for-elementor/assets/css/datatables.min.css?ver=2.3.3');
     wp_enqueue_style('datatables');
 
-    wp_register_script('datatables', 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', ['jquery']);
+    wp_register_script('datatables', 'https://dexbooster.io/wp-content/plugins/ht-mega-for-elementor/assets/js/datatables.min.js?ver=2.3.3', ['jquery']);
     wp_enqueue_script('datatables');
 
     wp_enqueue_script('dexbooster-datatables', plugin_dir_url(__FILE__) . 'dexbooster-datatables.js?token=' . time(), null, null, true);

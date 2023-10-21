@@ -1,5 +1,5 @@
 jQuery(`.dexbooster-datatables`).not(`.dataTable`).each(function () {
-    new DataTable(jQuery(this), {
+    jQuery(this).dataTable({
         serverSide: true,
         processing: true,
         lengthChange: false,
