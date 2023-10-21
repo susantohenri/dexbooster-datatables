@@ -1,0 +1,110 @@
+<?php
+
+/**
+ * Dex Booster Datatables
+ *
+ * @package     DexBoosterDatatables
+ * @author      Henri Susanto
+ * @copyright   2023 Henri Susanto
+ * @license     GPL-2.0-or-later
+ *
+ * @wordpress-plugin
+ * Plugin Name: Dex Booster Datatables
+ * Plugin URI:  https://github.com/susantohenri/dexbooster-datatables
+ * Description: Datatables plugin for dexbooster.io to speed up page load by serving large JSON through PHP backend <strong>sample usage:</strong> [dexbooster-datatables json-url="https://ffxkccymzr.a.pinggy.online/data_arbitrum"]
+ * Version:     1.0.0
+ * Author:      Henri Susanto
+ * Author URI:  https://github.com/susantohenri/
+ * Text Domain: DexBoosterDatatables
+ * License:     GPL v2 or later
+ * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
+ */
+
+add_shortcode('dexbooster-datatables', function ($attributes) {
+    if (!isset($attributes['json-url'])) return '<strong>invalid short-code usage, use:</strong> [dexbooster-datatables json-url="https://ffxkccymzr.a.pinggy.online/data_arbitrum"]';
+
+    wp_register_style('datatables', 'https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css');
+    wp_enqueue_style('datatables');
+
+    wp_register_script('datatables', 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', ['jquery']);
+    wp_enqueue_script('datatables');
+
+    wp_enqueue_script('dexbooster-datatables', plugin_dir_url(__FILE__) . 'dexbooster-datatables.js?token=' . time(), null, null, true);
+    wp_localize_script(
+        'dexbooster-datatables',
+        'dexbooster_datatables',
+        array(
+            'json_parser_url' => site_url("wp-json/dexbooster-datatables/v1/parse-json?&cache-breaker=" . time()),
+        )
+    );
+
+    return "
+        <table class='dexbooster-datatables' json-url='{$attributes['json-url']}'>
+            <thead>
+                <tr>
+                    <th>PAIR</th>
+                    <th>TIER</th>
+                    <th>APR</th>
+                    <th>PRICE</th>
+                    <th>TVL</th>
+                    <th>DEX</th>
+                    <th>INFO</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    ";
+});
+
+add_action('rest_api_init', function () {
+    register_rest_route('dexbooster-datatables/v1', '/parse-json', array(
+        'methods' => 'POST',
+        'permission_callback' => '__return_true',
+        'callback' => function () {
+            $contents = file_get_contents($_POST['source'], 0, stream_context_create(array(
+                'ssl' => array(
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                ),
+                'http' => array(
+                    'timeout' => 30
+                )
+            )));
+
+            $json = json_decode($contents, true);
+            $json = array_map(function ($obj) {
+                $obj = array_filter($obj, function ($value, $attr) {
+                    return in_array($attr, ['Pair', 'Tier', 'apr_mensual', 'Price_USD', 'TVL 2', 'Dex_image', 'FDV']);
+                }, ARRAY_FILTER_USE_BOTH);
+                return array_values($obj);
+            }, $json);
+
+            $data = ['data' => $json];
+
+            $columns = $_POST['columns'];
+            $dir = $_POST['order'][0]['dir'];
+            $col = $columns[$_POST['order'][0]['column']]['name'];
+
+            $search = urldecode($_POST['search']['value']);
+            $rows = [];
+            foreach ($data['data'] as $row) {
+                if (
+                    (empty($search) || (!empty($search) && (stripos($row['key'], $search) !== false || stripos($row['id'], $search) !== false)))
+                ) {
+                    $rows[] = $row;
+                }
+            }
+
+            uasort($rows, fn ($a, $b) => ($dir === 'asc') ? $a[$col] <=> $b[$col] : $b[$col] <=> $a[$col]);
+            $data_slice = array_slice($rows, $_POST['start'], $_POST['length']);
+
+            return [
+                'draw' => intval($_POST['draw']),
+                'recordsTotal' => count($data['data']),
+                'recordsFiltered' => count($rows),
+                'data' => $data_slice
+            ];
+        }
+    ));
+});
