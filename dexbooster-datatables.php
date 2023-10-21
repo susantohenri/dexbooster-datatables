@@ -62,15 +62,13 @@ add_action('rest_api_init', function () {
         'methods' => 'POST',
         'permission_callback' => '__return_true',
         'callback' => function () {
-            $contents = file_get_contents($_POST['source'], 0, stream_context_create(array(
-                'ssl' => array(
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
-                ),
-                'http' => array(
-                    'timeout' => 30
-                )
-            )));
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_HEADER, 0);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_URL, $_POST['source']);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+            $contents = curl_exec($ch);
+            curl_close($ch);
 
             $json = json_decode($contents, true);
             $json = array_map(function ($obj) {
