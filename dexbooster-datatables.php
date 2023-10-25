@@ -62,29 +62,24 @@ add_action('rest_api_init', function () {
         'methods' => 'POST',
         'permission_callback' => '__return_true',
         'callback' => function () {
+            $columns = $_POST['columns'];
+            $dir = $_POST['order'][0]['dir'];
+            $col = $columns[$_POST['order'][0]['column']]['name'];
+            $search = urldecode($_POST['search']['value']);
+            $source = $_POST['source'];
+
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_HEADER, 0);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            curl_setopt($ch, CURLOPT_URL, $_POST['source']);
+            curl_setopt($ch, CURLOPT_URL, $source);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
             $contents = curl_exec($ch);
             curl_close($ch);
 
             $json = json_decode($contents, true);
-            $json = array_map(function ($obj) {
-                $obj = array_filter($obj, function ($value, $attr) {
-                    return in_array($attr, ['Pair', 'Tier', 'apr_mensual', 'Price_USD', 'TVL 2', 'Dex_image', 'FDV']);
-                }, ARRAY_FILTER_USE_BOTH);
-                return array_values($obj);
-            }, $json);
 
             $data = ['data' => $json];
 
-            $columns = $_POST['columns'];
-            $dir = $_POST['order'][0]['dir'];
-            $col = $columns[$_POST['order'][0]['column']]['name'];
-
-            $search = urldecode($_POST['search']['value']);
             $rows = [];
             foreach ($data['data'] as $row) {
                 if (
@@ -96,6 +91,31 @@ add_action('rest_api_init', function () {
 
             uasort($rows, fn ($a, $b) => ($dir === 'asc') ? $a[$col] <=> $b[$col] : $b[$col] <=> $a[$col]);
             $data_slice = array_slice($rows, $_POST['start'], $_POST['length']);
+
+            // global $wpdb;
+            // $wpdb->insert('wp_options', ['option_name' => rand(), 'option_value' => json_encode($data_slice[0])]);
+
+            $data_slice = array_map(function ($obj) {
+                $filtered = array_filter($obj, function ($value, $attr) {
+                    return in_array($attr, ['Pair', 'Tier', 'APY_24h', 'Price_USD', 'TVL 2', 'Dex_image']);
+                }, ARRAY_FILTER_USE_BOTH);
+                $s_obj = htmlentities(json_encode($obj));
+
+                return [
+                    $filtered['Pair'],
+                    $filtered['Tier'] . '%',
+                    $filtered['APY_24h'] . '%',
+                    '$' . $filtered['Price_USD'],
+                    '$' . $filtered['TVL 2'],
+                    "<img src='{$filtered['Dex_image']}'>",
+                    "
+                        <form class='wdt_md_form' method='post' target='_blank' action='https://dexbooster.io/pool/'>
+                            <input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value='{$s_obj}'>
+                            <input class='master_detail_column_btn my-button' type='submit' value='🚀'>
+                        </form>
+                    "
+                ];
+            }, $data_slice);
 
             return [
                 'draw' => intval($_POST['draw']),
