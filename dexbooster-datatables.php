@@ -62,11 +62,25 @@ add_action('rest_api_init', function () {
         'methods' => 'POST',
         'permission_callback' => '__return_true',
         'callback' => function () {
+            $result = [
+                'draw' => intval($_POST['draw']),
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => []
+            ];
             $columns = $_POST['columns'];
             $dir = $_POST['order'][0]['dir'];
             $col = $columns[$_POST['order'][0]['column']]['name'];
             $search = urldecode($_POST['search']['value']);
             $source = $_POST['source'];
+
+            global $wpdb;
+            $wpdt_same_source = array_values(array_filter($wpdb->get_results("SELECT id, content FROM {$wpdb->prefix}wpdatatables"), function ($wpdt) use ($source) {
+                $content = json_decode($wpdt->content);
+                return $content->url == $source;
+            }));
+            if (!isset($wpdt_same_source[0])) return $result;
+            else $wpdt_id = $wpdt_same_source[0]->id;
 
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_HEADER, 0);
@@ -77,7 +91,6 @@ add_action('rest_api_init', function () {
             curl_close($ch);
 
             $json = json_decode($contents, true);
-
             $data = ['data' => $json];
 
             $rows = [];
@@ -92,14 +105,13 @@ add_action('rest_api_init', function () {
             uasort($rows, fn ($a, $b) => ($dir === 'asc') ? $a[$col] <=> $b[$col] : $b[$col] <=> $a[$col]);
             $data_slice = array_slice($rows, $_POST['start'], $_POST['length']);
 
-            // global $wpdb;
-            // $wpdb->insert('wp_options', ['option_name' => rand(), 'option_value' => json_encode($data_slice[0])]);
-
-            $data_slice = array_map(function ($obj) {
+            $data_slice = array_map(function ($obj) use ($wpdt_id) {
                 $filtered = array_filter($obj, function ($value, $attr) {
                     return in_array($attr, ['Pair', 'Tier', 'APY_24h', 'Price_USD', 'TVL 2', 'Dex_image']);
                 }, ARRAY_FILTER_USE_BOTH);
+                $obj['wdt_md_id_table'] = $wpdt_id;
                 $s_obj = htmlentities(json_encode($obj));
+                $detail_page = site_url('pool');
 
                 return [
                     $filtered['Pair'],
@@ -109,20 +121,21 @@ add_action('rest_api_init', function () {
                     '$' . $filtered['TVL 2'],
                     "<img src='{$filtered['Dex_image']}'>",
                     "
-                        <form class='wdt_md_form' method='post' target='_blank' action='https://dexbooster.io/pool/'>
-                            <input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value='{$s_obj}'>
+                        <form class='wdt_md_form' method='post' target='_blank' action='{$detail_page}'>
+                            <input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value=\"{$s_obj}\">
                             <input class='master_detail_column_btn my-button' type='submit' value='🚀'>
                         </form>
                     "
                 ];
             }, $data_slice);
 
-            return [
+            $result = [
                 'draw' => intval($_POST['draw']),
                 'recordsTotal' => count($data['data']),
                 'recordsFiltered' => count($rows),
                 'data' => $data_slice
             ];
+            return $result;
         }
     ));
 });
