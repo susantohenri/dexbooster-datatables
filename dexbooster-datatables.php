@@ -30,11 +30,13 @@ function dexbooster_datatables_ajax()
         'recordsFiltered' => 0,
         'data' => []
     ];
-    $columns = $_POST['columns'];
+
+	$columns = $_POST['columns'];
     $dir = $_POST['order'][0]['dir'];
     $col = $columns[$_POST['order'][0]['column']]['name'];
     $search = urldecode($_POST['search']['value']);
-    $source = 'https://ffxkccymzr.a.pinggy.online/data_arbitrum';
+//     $source = 'https://ffxkccymzr.a.pinggy.online/data_arbitrum';
+    $source = 'https://henri.xsanisty.com/data_arbitrum.json';
 
 	$wpdt_id = 49;
 
@@ -47,7 +49,7 @@ function dexbooster_datatables_ajax()
     curl_close($ch);
 
     $json = json_decode($contents, true);
-    $data = ['data' => $json];
+	$data = ['data' => $json];
 
     $rows = [];
     foreach ($data['data'] as $row) {
@@ -61,37 +63,45 @@ function dexbooster_datatables_ajax()
     uasort($rows, fn ($a, $b) => ($dir === 'asc') ? $a[$col] <=> $b[$col] : $b[$col] <=> $a[$col]);
     $data_slice = array_slice($rows, $_POST['start'], $_POST['length']);
 
-    $data_slice = array_map(function ($obj) use ($wpdt_id) {
-        $filtered = array_filter($obj, function ($value, $attr) {
-            return in_array($attr, ['Pair', 'Tier', 'APY_24h', 'Price_USD', 'TVL 2', 'Dex_image']);
-        }, ARRAY_FILTER_USE_BOTH);
-        $obj['wdt_md_id_table'] = $wpdt_id;
-        $s_obj = htmlentities(json_encode($obj));
-        $detail_page = site_url('pool');
+	foreach ($data_slice as $index => $value) {
+		foreach ($value as $key => $obj) $value[$key] = strval($obj);
+		$data_slice[$index] = array_values($value);
+		$data_slice[$index][] = "<form class='wdt_md_form' method='post' target='_blank' action='https:\/\/dexbooster.io\/pool\/'>\n <input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value=''>\n <input class='master_detail_column_btn my-button' type='submit' value='\ud83d\ude80'>\n <\/form>";
+	}
+	
+	
+//     $data_slice = array_map(function ($obj) use ($wpdt_id) {
+//         $filtered = array_filter($obj, function ($value, $attr) {
+//             return in_array($attr, ['Pair', 'Tier', 'APY_24h', 'Price_USD', 'TVL 2', 'Dex_image']);
+//         }, ARRAY_FILTER_USE_BOTH);
+//         $obj['wdt_md_id_table'] = $wpdt_id;
+//         $s_obj = htmlentities(json_encode($obj));
+//         $detail_page = site_url('pool');
 
-        return [
-            $filtered['Pair'],
-            $filtered['Tier'] . '%',
-            $filtered['APY_24h'] . '%',
-            '$' . $filtered['Price_USD'],
-            '$' . $filtered['TVL 2'],
-            "<img src='{$filtered['Dex_image']}'>",
-            "
-                <form class='wdt_md_form' method='post' target='_blank' action='https://dexbooster.io/pool/'>
-                    <input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value=\"{$s_obj}\">
-                    <input class='master_detail_column_btn my-button' type='submit' value='🚀'>
-                </form>
-            "
-        ];
-    }, $data_slice);
+//         return [
+//             $filtered['Pair'],
+//             $filtered['Tier'] . '%',
+//             $filtered['APY_24h'] . '%',
+//             '$' . $filtered['Price_USD'],
+//             '$' . $filtered['TVL 2'],
+//             "<img src='{$filtered['Dex_image']}'>",
+//             "
+//                 <form class='wdt_md_form' method='post' target='_blank' action='https://dexbooster.io/pool/'>
+//                     <input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value=\"{$s_obj}\">
+//                     <input class='master_detail_column_btn my-button' type='submit' value='🚀'>
+//                 </form>
+//             "
+//         ];
+//     }, $data_slice);
 
-    $result = [
+	$result = [
         'draw' => intval($_POST['draw']),
-        'recordsTotal' => count($data['data']),
-        'recordsFiltered' => count($rows),
+        'recordsTotal' => strval(count($data['data'])),
+        'recordsFiltered' => strval(count($rows)),
         'data' => $data_slice
     ];
-	echo $result;
+
 // 	wp_send_json($result);
-    wp_die();
+	echo json_encode($result);
+	wp_die();
 }
