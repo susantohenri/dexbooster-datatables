@@ -11,7 +11,7 @@
  * @wordpress-plugin
  * Plugin Name: Dex Booster Datatables
  * Plugin URI:  https://github.com/susantohenri/dexbooster-datatables
- * Description: Datatables plugin for dexbooster.io to speed up page load by serving large JSON through PHP backend <strong>sample usage:</strong> [dexbooster-datatables json-url="https://ffxkccymzr.a.pinggy.online/data_arbitrum"]
+ * Description: Update current wpdatatable: set input data source type to "SQL query", check "Enable server-side processing", and SQL Query to "SELECT * FROM `arbitrum` WHERE 'https://henri.xsanisty.com/data_arbitrum.json' = 'https://henri.xsanisty.com/data_arbitrum.json'" (change URL with json source)
  * Version:     1.0.0
  * Author:      Henri Susanto
  * Author URI:  https://github.com/susantohenri/
@@ -20,8 +20,8 @@
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
  */
 
-// add_action('wp_ajax_get_wdtable', 'dexbooster_datatables_ajax', 1);
-// add_action('wp_ajax_nopriv_get_wdtable', 'dexbooster_datatables_ajax', 1);
+add_action('wp_ajax_get_wdtable', 'dexbooster_datatables_ajax', 1);
+add_action('wp_ajax_nopriv_get_wdtable', 'dexbooster_datatables_ajax', 1);
 function dexbooster_datatables_ajax()
 {
     $result = [
@@ -31,14 +31,18 @@ function dexbooster_datatables_ajax()
         'data' => []
     ];
 
+	global $wpdb;
+	
 	$columns = $_POST['columns'];
     $dir = $_POST['order'][0]['dir'];
     $col = $columns[$_POST['order'][0]['column']]['name'];
     $search = urldecode($_POST['search']['value']);
-//     $source = 'https://ffxkccymzr.a.pinggy.online/data_arbitrum';
-    $source = 'https://henri.xsanisty.com/data_arbitrum.json';
 
-	$wpdt_id = 49;
+	$wpdt_id = $_GET['table_id'];
+	$source = $wpdb->get_var("SELECT SUBSTR(content, LOCATE('=', content)) FROM `{$wpdb->prefix}wpdatatables` WHERE id = {$wpdt_id}");
+	$source = str_replace('=','', $source);
+	$source = str_replace("'",'', $source);
+	$source = trim($source);
 
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_HEADER, 0);
@@ -63,36 +67,24 @@ function dexbooster_datatables_ajax()
     uasort($rows, fn ($a, $b) => ($dir === 'asc') ? $a[$col] <=> $b[$col] : $b[$col] <=> $a[$col]);
     $data_slice = array_slice($rows, $_POST['start'], $_POST['length']);
 
-	foreach ($data_slice as $index => $value) {
-		foreach ($value as $key => $obj) $value[$key] = strval($obj);
-		$data_slice[$index] = array_values($value);
-		$data_slice[$index][] = "<form class='wdt_md_form' method='post' target='_blank' action='https:\/\/dexbooster.io\/pool\/'>\n <input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value=''>\n <input class='master_detail_column_btn my-button' type='submit' value='\ud83d\ude80'>\n <\/form>";
+	$header_positions = [];
+	foreach ($wpdb->get_results("SELECT orig_header, pos FROM {$wpdb->prefix}wpdatatables_columns WHERE table_id={$wpdt_id}") as $header) {
+		$header_positions[$header->pos] = $header->orig_header;
 	}
 	
-	
-//     $data_slice = array_map(function ($obj) use ($wpdt_id) {
-//         $filtered = array_filter($obj, function ($value, $attr) {
-//             return in_array($attr, ['Pair', 'Tier', 'APY_24h', 'Price_USD', 'TVL 2', 'Dex_image']);
-//         }, ARRAY_FILTER_USE_BOTH);
-//         $obj['wdt_md_id_table'] = $wpdt_id;
-//         $s_obj = htmlentities(json_encode($obj));
-//         $detail_page = site_url('pool');
+	foreach ($data_slice as $index => $value) {
+		$reordereds = [];
+		foreach ($value as $key => $obj) {
+			if ('Dex_image' == $key) $value[$key] = "<img src='{$obj}'>";
+			else $value[$key] = strval($obj);
+			foreach ($header_positions as $pos => $orig_header) {
+	 			$reordereds[(int)$pos] = $value[$orig_header];				
+			}
+		}
 
-//         return [
-//             $filtered['Pair'],
-//             $filtered['Tier'] . '%',
-//             $filtered['APY_24h'] . '%',
-//             '$' . $filtered['Price_USD'],
-//             '$' . $filtered['TVL 2'],
-//             "<img src='{$filtered['Dex_image']}'>",
-//             "
-//                 <form class='wdt_md_form' method='post' target='_blank' action='https://dexbooster.io/pool/'>
-//                     <input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value=\"{$s_obj}\">
-//                     <input class='master_detail_column_btn my-button' type='submit' value='🚀'>
-//                 </form>
-//             "
-//         ];
-//     }, $data_slice);
+		$data_slice[$index] = $reordereds;
+		$data_slice[$index][count($reordereds)-1] = "<form class='wdt_md_form' method='post' target='_blank' action='https://dexbooster.io/pool/'><input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value=''><input class='master_detail_column_btn my-button' type='submit' value='🚀'></form>";
+	}
 
 	$result = [
         'draw' => intval($_POST['draw']),
@@ -101,7 +93,6 @@ function dexbooster_datatables_ajax()
         'data' => $data_slice
     ];
 
-// 	wp_send_json($result);
 	echo json_encode($result);
 	wp_die();
 }
