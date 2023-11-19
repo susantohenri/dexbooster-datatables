@@ -20,6 +20,8 @@
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
  */
 
+define('DEX_BOOSTER_DATATABLES_CRON_INTERVAL_MINUTES', 10);
+
 add_action('wp_ajax_get_wdtable', 'dexbooster_datatables_ajax', 1);
 add_action('wp_ajax_nopriv_get_wdtable', 'dexbooster_datatables_ajax', 1);
 function dexbooster_datatables_ajax()
@@ -44,13 +46,19 @@ function dexbooster_datatables_ajax()
     $source = str_replace("'", '', $source);
     $source = trim($source);
 
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_HEADER, 0);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_URL, $source);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-    $contents = curl_exec($ch);
-    curl_close($ch);
+    $downloaded_json_file = plugin_dir_path(__FILE__) . end(explode('/', $source)) . '.json';
+    $last_downloaded = round(abs(time() - filemtime($downloaded_json_file)) / 60, 2);
+    if ($last_downloaded >= DEX_BOOSTER_DATATABLES_CRON_INTERVAL_MINUTES) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_URL, $source);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        $contents = curl_exec($ch);
+        curl_close($ch);
+        file_put_contents($downloaded_json_file, $contents);
+    }
+    $contents = file_get_contents($downloaded_json_file);
 
     $json = json_decode($contents, true);
     $data = ['data' => $json];
