@@ -91,7 +91,10 @@ function dexbooster_datatables_ajax()
         }
 
         $data_slice[$index] = $reordereds;
-        $data_slice[$index][count($reordereds) - 1] = "<form class='wdt_md_form' method='post' target='_blank' action='https://dexbooster.io/pool/'><input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value=''><input class='master_detail_column_btn my-button' type='submit' value='🚀'></form>";
+        $crypto = str_replace('data_', '', end(explode('/', $source)));
+        $pool_url = site_url("{$crypto}/pool");
+        $pool_url = 'https://dexbooster.io/pool/';
+        $data_slice[$index][count($reordereds) - 1] = "<form class='wdt_md_form' method='post' target='_blank' action='{$pool_url}'><input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value=''><input class='master_detail_column_btn my-button' type='submit' value='🚀'></form>";
     }
 
     $result = [
