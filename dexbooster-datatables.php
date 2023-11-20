@@ -82,8 +82,10 @@ function dexbooster_datatables_ajax()
 
     foreach ($data_slice as $index => $value) {
         $reordereds = [];
+        $address = '';
         foreach ($value as $key => $obj) {
             if ('Dex_image' == $key) $value[$key] = "<img src='{$obj}'>";
+            if ('Address' === $key) $address = $obj;
             else $value[$key] = strval($obj);
             foreach ($header_positions as $pos => $orig_header) {
                 $reordereds[(int)$pos] = $value[$orig_header];
@@ -92,8 +94,8 @@ function dexbooster_datatables_ajax()
 
         $data_slice[$index] = $reordereds;
         $crypto = str_replace('data_', '', end(explode('/', $source)));
-        $pool_url = site_url("{$crypto}/pool");
-        $pool_url = 'https://dexbooster.io/pool/';
+        $pool_url = site_url("{$crypto}/pool/{$address}");
+        // $pool_url = 'https://dexbooster.io/pool/';
         $data_slice[$index][count($reordereds) - 1] = "<form class='wdt_md_form' method='post' target='_blank' action='{$pool_url}'><input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value=''><input class='master_detail_column_btn my-button' type='submit' value='🚀'></form>";
     }
 
