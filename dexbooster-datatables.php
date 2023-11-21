@@ -89,7 +89,7 @@ function dexbooster_datatables_ajax()
 }
 
 add_action('init', function () {
-    if (isset($_GET['blockchain']) && isset($_GET['wpdtid']) && isset($_GET['address'])) {
+    if (isset($_GET['wpdtid']) && isset($_GET['address'])) {
         $params = [
             'crypto' => $_GET['crypto'],
             'wpdtid' => $_GET['wpdtid'],
