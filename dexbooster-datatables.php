@@ -33,35 +33,14 @@ function dexbooster_datatables_ajax()
         'data' => []
     ];
 
-    global $wpdb;
-
     $columns = $_POST['columns'];
     $dir = $_POST['order'][0]['dir'];
     $col = $columns[$_POST['order'][0]['column']]['name'];
     $search = urldecode($_POST['search']['value']);
-
     $wpdt_id = $_GET['table_id'];
-    $source = $wpdb->get_var("SELECT SUBSTR(content, LOCATE('=', content)) FROM `{$wpdb->prefix}wpdatatables` WHERE id = {$wpdt_id}");
-    $source = str_replace('=', '', $source);
-    $source = str_replace("'", '', $source);
-    $source = trim($source);
 
-    $downloaded_json_file = plugin_dir_path(__FILE__) . end(explode('/', $source)) . '.json';
-    $last_downloaded = round(abs(time() - filemtime($downloaded_json_file)) / 60, 2);
-    if ($last_downloaded >= DEX_BOOSTER_DATATABLES_CRON_INTERVAL_MINUTES) {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_URL, $source);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-        $contents = curl_exec($ch);
-        curl_close($ch);
-        file_put_contents($downloaded_json_file, $contents);
-    }
-    $contents = file_get_contents($downloaded_json_file);
-
-    $json = json_decode($contents, true);
-    $data = ['data' => $json];
+    $json = dexbooster_datatables_get_uptodate_json_data($wpdt_id);
+    $data = ['data' => $json['data']];
 
     $rows = [];
     foreach ($data['data'] as $row) {
@@ -76,6 +55,7 @@ function dexbooster_datatables_ajax()
     $data_slice = array_slice($rows, $_POST['start'], $_POST['length']);
 
     $header_positions = [];
+    global $wpdb;
     foreach ($wpdb->get_results("SELECT orig_header, pos FROM {$wpdb->prefix}wpdatatables_columns WHERE table_id={$wpdt_id}") as $header) {
         $header_positions[$header->pos] = $header->orig_header;
     }
@@ -93,9 +73,7 @@ function dexbooster_datatables_ajax()
         }
 
         $data_slice[$index] = $reordereds;
-        $crypto = str_replace('data_', '', end(explode('/', $source)));
-        $pool_url = site_url("{$crypto}/pool/{$address}");
-        // $pool_url = 'https://dexbooster.io/pool/';
+        $pool_url = site_url("pool?crypto={$json['crypto']}&wpdtid={$wpdt_id}&address={$address}");
         $data_slice[$index][count($reordereds) - 1] = "<form class='wdt_md_form' method='post' target='_blank' action='{$pool_url}'><input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value=''><input class='master_detail_column_btn my-button' type='submit' value='🚀'></form>";
     }
 
@@ -108,4 +86,51 @@ function dexbooster_datatables_ajax()
 
     echo json_encode($result);
     wp_die();
+}
+
+add_action('init', function () {
+    if (isset($_GET['crypto']) && isset($_GET['wpdtid']) && isset($_GET['address'])) {
+        $params = [
+            'crypto' => $_GET['crypto'],
+            'wpdtid' => $_GET['wpdtid'],
+            'address' => $_GET['address'],
+        ];
+        $json = dexbooster_datatables_get_uptodate_json_data($params['wpdtid']);
+        $rows = array_values(array_filter($json['data'], function ($record) use ($params) {
+            return $record['Address'] == $params['address'];
+        }));
+        $rows[0]['wdt_md_id_table'] = $params['wpdtid'];
+        $rows = json_encode($rows[0]);
+        $rows = addslashes($rows);
+        $_POST['wdt_details_data'] = $rows;
+    }
+});
+
+function dexbooster_datatables_get_uptodate_json_data($wpdt_id)
+{
+    global $wpdb;
+    $source = $wpdb->get_var("SELECT SUBSTR(content, LOCATE('=', content)) FROM `{$wpdb->prefix}wpdatatables` WHERE id = {$wpdt_id}");
+    $source = str_replace('=', '', $source);
+    $source = str_replace("'", '', $source);
+    $source = trim($source);
+
+    $crypto_data = explode('/', $source);
+    $crypto_data = end($crypto_data);
+
+    $downloaded_json_file = plugin_dir_path(__FILE__) . "{$crypto_data}.json";
+    $last_downloaded = round(abs(time() - filemtime($downloaded_json_file)) / 60, 2);
+    if ($last_downloaded >= DEX_BOOSTER_DATATABLES_CRON_INTERVAL_MINUTES) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_URL, $source);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        $contents = curl_exec($ch);
+        curl_close($ch);
+        file_put_contents($downloaded_json_file, $contents);
+    }
+    return [
+        'crypto' => str_replace('data_', '', $crypto_data),
+        'data' => json_decode(file_get_contents($downloaded_json_file), true)
+    ];
 }
