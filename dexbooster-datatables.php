@@ -100,6 +100,7 @@ add_action('init', function () {
             return $record['Address'] == $params['address'];
         }));
         $rows[0]['wdt_md_id_table'] = $params['wpdtid'];
+        $rows[0]['Dex_image'] = "<img src='{$rows[0]['Dex_image']}'>";
         $rows = json_encode($rows[0]);
         $rows = addslashes($rows);
         $_POST['wdt_details_data'] = $rows;
