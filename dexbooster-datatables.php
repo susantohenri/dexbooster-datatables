@@ -45,7 +45,8 @@ function dexbooster_datatables_ajax()
     $rows = [];
     foreach ($data['data'] as $row) {
         if (
-            (empty($search) || (!empty($search) && (stripos($row['Pair'], $search) !== false)))
+            (empty($search) ||
+                (!empty($search) && (stripos($row['Pair'], $search) !== false || stripos($row['Address'], $search) !== false)))
         ) {
             $rows[] = $row;
         }
