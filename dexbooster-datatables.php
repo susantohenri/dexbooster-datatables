@@ -136,3 +136,14 @@ function dexbooster_datatables_get_uptodate_json_data($wpdt_id)
         'data' => json_decode(file_get_contents($downloaded_json_file), true)
     ];
 }
+
+add_filter('wpdatatables_filter_rendered_table', function ($content) {
+    wp_enqueue_script(
+        'dexbooster-datatables-modal-filter',
+        plugin_dir_url(__FILE__) . 'dexbooster-datatables-modal-filter.js',
+        array('jquery'),
+        1,
+        true
+    );
+    return $content;
+});
