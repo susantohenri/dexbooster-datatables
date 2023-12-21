@@ -43,13 +43,32 @@ function dexbooster_datatables_ajax()
     $data = ['data' => $json['data']];
 
     $rows = [];
+    $filter_detail = [];
+    parse_str($_POST['dexbooster_datatables_modal_filter'], $filter_detail);
+
     foreach ($data['data'] as $row) {
+        $include_row = false;
         if (
             (empty($search) ||
                 (!empty($search) && (stripos($row['Pair'], $search) !== false || stripos($row['Address'], $search) !== false)))
         ) {
-            $rows[] = $row;
+            $include_row = true;
         }
+        foreach ($filter_detail as $key => $value) {
+            if ('' !== $value) {
+                if (-1 < strpos($key, '_min')) {
+                    $attr = str_replace('_min', '', $key);
+                    if ($row[$attr] >= $value) $include_row = true;
+                } else if (-1 < strpos($key, '_max')) {
+                    $attr = str_replace('_max', '', $key);
+                    if ($row[$attr] <= $value) $include_row = true;
+                } else if (-1 < strpos($key, '_name')) {
+                    $attr = str_replace('_name', '', $key);
+                    if ($row[$attr] == $value) $include_row = true;
+                }
+            }
+        }
+        if (true === $include_row) $rows[] = $row;
     }
 
     uasort($rows, fn ($a, $b) => ($dir === 'asc') ? $a[$col] <=> $b[$col] : $b[$col] <=> $a[$col]);
@@ -136,3 +155,14 @@ function dexbooster_datatables_get_uptodate_json_data($wpdt_id)
         'data' => json_decode(file_get_contents($downloaded_json_file), true)
     ];
 }
+
+add_filter('wpdatatables_filter_rendered_table', function ($content) {
+    wp_enqueue_script(
+        'dexbooster-datatables-modal-filter',
+        plugin_dir_url(__FILE__) . 'dexbooster-datatables-modal-filter.js',
+        array('jquery'),
+        1,
+        true
+    );
+    return $content;
+});
