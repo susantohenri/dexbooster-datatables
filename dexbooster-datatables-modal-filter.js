@@ -52,7 +52,6 @@ function dexbooster_datatables_modal_filter_build_form() {
     const fields = [{ name: "APY_1h", label: "APY 1h", type: "min & max" },
     { name: "APY_24h", label: "APY 24h", type: "min & max" },
     { name: "APY_6h", label: "APY 6h", type: "min & max" },
-    { name: "Blockchain", label: "Blockchain", type: "Name" },
     { name: "DEX", label: "DEX", type: "Name" },
     { name: "FDV", label: "FDV", type: "min & max" },
     { name: "Fees_1h", label: "Fees 1h", type: "min & max" },

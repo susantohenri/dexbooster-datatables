@@ -161,7 +161,7 @@ add_filter('wpdatatables_filter_rendered_table', function ($content) {
         'dexbooster-datatables-modal-filter',
         plugin_dir_url(__FILE__) . 'dexbooster-datatables-modal-filter.js',
         array('jquery'),
-        1,
+        3,
         true
     );
     return $content;
