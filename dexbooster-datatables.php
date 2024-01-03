@@ -39,40 +39,41 @@ function dexbooster_datatables_ajax()
     $search = urldecode($_POST['search']['value']);
     $wpdt_id = $_GET['table_id'];
 
-    $json = dexbooster_datatables_get_uptodate_json_data($wpdt_id);
-    $data = ['data' => $json['data']];
+    [$unfiltered, $crypto] = dexbooster_datatables_get_uptodate_json_data($wpdt_id);
+    $filtered = $unfiltered;
 
-    $rows = [];
     $filter_detail = [];
     parse_str($_POST['dexbooster_datatables_modal_filter'], $filter_detail);
+    $filter_detail = 0 < count(array_filter(array_values($filter_detail), function ($value) {
+        return '' !== $value;
+    })) ? $filter_detail : [];
 
-    foreach ($data['data'] as $row) {
-        $include_row = false;
-        if (
-            (empty($search) ||
-                (!empty($search) && (stripos($row['Pair'], $search) !== false || stripos($row['Address'], $search) !== false)))
-        ) {
-            $include_row = true;
-        }
+    $filtered = empty($filter_detail) ? $filtered : array_filter($filtered, function ($row) use ($filter_detail) {
+        $result = false;
         foreach ($filter_detail as $key => $value) {
-            if ('' !== $value) {
+            if ('' === $value) continue;
+            else {
                 if (-1 < strpos($key, '_min')) {
                     $attr = str_replace('_min', '', $key);
-                    if ($row[$attr] >= $value) $include_row = true;
+                    $result = $result && $row[$attr] >= $value;
                 } else if (-1 < strpos($key, '_max')) {
                     $attr = str_replace('_max', '', $key);
-                    if ($row[$attr] <= $value) $include_row = true;
+                    $result = $result && $row[$attr] <= $value;
                 } else if (-1 < strpos($key, '_name')) {
                     $attr = str_replace('_name', '', $key);
-                    if ($row[$attr] == $value) $include_row = true;
+                    $result = $result && $row[$attr] == $value;
                 }
             }
         }
-        if (true === $include_row) $rows[] = $row;
-    }
+        return $result;
+    });
 
-    uasort($rows, fn ($a, $b) => ($dir === 'asc') ? $a[$col] <=> $b[$col] : $b[$col] <=> $a[$col]);
-    $data_slice = array_slice($rows, $_POST['start'], $_POST['length']);
+    $filtered = empty($search) ? $filtered : array_filter($filtered, function ($row) use ($search) {
+        return stripos($row['Pair'], $search) !== false || stripos($row['Address'], $search) !== false;
+    });
+
+    uasort($filtered, fn ($a, $b) => ($dir === 'asc') ? $a[$col] <=> $b[$col] : $b[$col] <=> $a[$col]);
+    $data_slice = array_slice($filtered, $_POST['start'], $_POST['length']);
 
     $header_positions = [];
     global $wpdb;
@@ -93,14 +94,14 @@ function dexbooster_datatables_ajax()
         }
 
         $data_slice[$index] = $reordereds;
-        $pool_url = site_url("pool?blockchain={$json['crypto']}&wpdtid={$wpdt_id}&address={$address}");
+        $pool_url = site_url("pool?blockchain={$crypto}&wpdtid={$wpdt_id}&address={$address}");
         $data_slice[$index][count($reordereds) - 1] = "<form class='wdt_md_form' method='post' target='_blank' action='{$pool_url}'><input class='wdt_md_hidden_data' type='hidden' name='wdt_details_data' value=''><input class='master_detail_column_btn my-button' type='submit' value='🚀'></form>";
     }
 
     $result = [
         'draw' => intval($_POST['draw']),
-        'recordsTotal' => strval(count($data['data'])),
-        'recordsFiltered' => strval(count($rows)),
+        'recordsTotal' => strval(count($unfiltered)),
+        'recordsFiltered' => strval(count($filtered)),
         'data' => $data_slice
     ];
 
@@ -115,8 +116,8 @@ add_action('init', function () {
             'wpdtid' => $_GET['wpdtid'],
             'address' => $_GET['address'],
         ];
-        $json = dexbooster_datatables_get_uptodate_json_data($params['wpdtid']);
-        $rows = array_values(array_filter($json['data'], function ($record) use ($params) {
+        [$json] = dexbooster_datatables_get_uptodate_json_data($params['wpdtid']);
+        $rows = array_values(array_filter($json, function ($record) use ($params) {
             return $record['Address'] == $params['address'];
         }));
         $rows[0]['wdt_md_id_table'] = $params['wpdtid'];
@@ -151,8 +152,8 @@ function dexbooster_datatables_get_uptodate_json_data($wpdt_id)
         file_put_contents($downloaded_json_file, $contents);
     }
     return [
-        'crypto' => str_replace('data_', '', $crypto_data),
-        'data' => json_decode(file_get_contents($downloaded_json_file), true)
+        json_decode(file_get_contents($downloaded_json_file), true),
+        str_replace('data_', '', $crypto_data)
     ];
 }
 
