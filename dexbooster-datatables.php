@@ -72,7 +72,27 @@ function dexbooster_datatables_ajax()
         return stripos($row['Pair'], $search) !== false || stripos($row['Address'], $search) !== false;
     });
 
-    uasort($filtered, fn ($a, $b) => ($dir === 'asc') ? $a[$col] <=> $b[$col] : $b[$col] <=> $a[$col]);
+    uasort($filtered, function ($a, $b) use ($col, $dir) {
+        if ('TVL 2' === $col) {
+            foreach (['a', 'b'] as $side) {
+                $unit = substr($$side[$col], -1);
+                switch ($unit) {
+                    case 'K':
+                        $$side[$col] = str_replace($unit, '', $$side[$col]);
+                        $$side[$col] = (float) $$side[$col] * 1000;
+                        break;
+                    case 'M':
+                        $$side[$col] = str_replace($unit, '', $$side[$col]);
+                        $$side[$col] = (float) $$side[$col] * 1000000;
+                        break;
+                    default:
+                        $$side[$col] = (float) $$side[$col];
+                        break;
+                }
+            }
+        }
+        return $dir === 'asc' ? $a[$col] <=> $b[$col] : $b[$col] <=> $a[$col];
+    });
     $data_slice = array_slice($filtered, $_POST['start'], $_POST['length']);
 
     $header_positions = [];
@@ -162,7 +182,7 @@ add_filter('wpdatatables_filter_rendered_table', function ($content) {
         'dexbooster-datatables-modal-filter',
         plugin_dir_url(__FILE__) . 'dexbooster-datatables-modal-filter.js',
         array('jquery'),
-        3,
+        4,
         true
     );
     return $content;
