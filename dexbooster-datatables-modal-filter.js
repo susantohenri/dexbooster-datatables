@@ -20,12 +20,15 @@ function dexbooster_datatables_modal_filter_build_button() {
 
 function dexbooster_datatables_modal_filter_build_modal() {
     jQuery(`.wpdt-c`).eq(0).parent().append(`
-        <div class="wpdt-c">
+        <div class="wpdt-c" style="font-family: 'IBM Plex Mono", Sans-serif'">
             <div id="dexbooster-datatables-modal-filter" class="modal fade" style="display: none" data-backdrop="static"
                 data-keyboard="false" tabindex="-1" role="dialog" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
                         </div>
                         <div class="modal-body">
                             <form></form>
