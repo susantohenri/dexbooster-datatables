@@ -55,13 +55,14 @@ function dexbooster_datatables_ajax()
             else {
                 if (-1 < strpos($key, '_min')) {
                     $attr = str_replace('_min', '', $key);
-                    $result = $result && $row[$attr] >= $value;
+                    $resbef = $result;
+                    $result = $result || $row[$attr] >= $value;
                 } else if (-1 < strpos($key, '_max')) {
                     $attr = str_replace('_max', '', $key);
-                    $result = $result && $row[$attr] <= $value;
+                    $result = $result || $row[$attr] <= $value;
                 } else if (-1 < strpos($key, '_name')) {
                     $attr = str_replace('_name', '', $key);
-                    $result = $result && $row[$attr] == $value;
+                    $result = $result || $row[$attr] == $value;
                 }
             }
         }
