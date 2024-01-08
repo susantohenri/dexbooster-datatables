@@ -20,7 +20,7 @@
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
  */
 
-define('DEX_BOOSTER_DATATABLES_CRON_INTERVAL_MINUTES', 10);
+define('DEX_BOOSTER_DATATABLES_CRON_INTERVAL_MINUTES', 100000000);
 
 add_action('wp_ajax_get_wdtable', 'dexbooster_datatables_ajax', 1);
 add_action('wp_ajax_nopriv_get_wdtable', 'dexbooster_datatables_ajax', 1);
@@ -183,7 +183,7 @@ add_filter('wpdatatables_filter_rendered_table', function ($content) {
         'dexbooster-datatables-modal-filter',
         plugin_dir_url(__FILE__) . 'dexbooster-datatables-modal-filter.js',
         array('jquery'),
-        4,
+        6,
         true
     );
     return $content;

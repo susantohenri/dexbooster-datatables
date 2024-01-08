@@ -20,20 +20,24 @@ function dexbooster_datatables_modal_filter_build_button() {
 
 function dexbooster_datatables_modal_filter_build_modal() {
     jQuery(`.wpdt-c`).eq(0).parent().append(`
-        <div class="wpdt-c" style="font-family: 'IBM Plex Mono", Sans-serif'">
+        <div class="wpdt-c" style="font-family: 'IBM Plex Mono", Sans-serif';">
             <div id="dexbooster-datatables-modal-filter" class="modal fade" style="display: none" data-backdrop="static"
                 data-keyboard="false" tabindex="-1" role="dialog" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
+                <div class="modal-dialog" style="width: auto; font-size: 12px">
+                    <div class="modal-content" style="color: white;">
+                        <div class="modal-header" style="background-color: #28282d">
+                            <b>Customize Filters</b>
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
+                                <span aria-hidden="true" style="color: white; font-size: 25px">&times;</span>
                             </button>
                         </div>
-                        <div class="modal-body">
-                            <form></form>
+                        <div class="modal-body" style="background-color: #1d1d22">
+                            <br>
+                            <form>
+                                <table style="border:0"></table>
+                            </form>
                         </div>
-                        <div class="modal-footer">
+                        <div class="modal-footer" style="text-align: center; background-color: #28282d">
                         </div>
                     </div>
                 </div>
@@ -71,27 +75,39 @@ function dexbooster_datatables_modal_filter_build_form() {
     for (var field of fields) {
         const input = `min & max` === field.type ?
             `
-            <input style="height: 35px; width: 30%;" type="text" name="${field.name}_min" placeholder="MIN">
-            &nbsp;<input style="height: 35px; width: 30%;" type="text" name="${field.name}_max" placeholder="MAX">
+            <td style="border: 0;">
+            <div style="display: flex; align-content: stretch;">
+                <span style="background-color: #333333; padding: 0.5em 1em">$</span>
+                <input style="flex: 1 0 auto;background-color: #1d1d22; border: 1px solid #333333;" type="text" name="${field.name}_min" placeholder="Min">
+            </div>
+            </td><td style="border: 0;">
+            <div style="display: flex; align-content: stretch;">
+                <span style="background-color: #333333; padding: 0.5em 1em">$</span>
+                <input style="flex: 1 0 auto;background-color: #1d1d22; border: 1px solid #333333;" type="text" name="${field.name}_max" placeholder="Max">
+            </div>
+            </td>
         `:
-            `
-            <input style="height: 35px; width: 61%;" type="text" name="${field.name}_name" placeholder="NAME">
-        `
-        jQuery(`[id="dexbooster-datatables-modal-filter"] .modal-body form`).append(`
-        <label style="width: 30%;">${field.label}</label>&nbsp;${input}<br><br>
-    `)
+        `<td style="border: 0;" colspan="2">
+            <input style="width:-webkit-fill-available; background-color: #1d1d22; border: 1px solid #333333;" type="text" name="${field.name}_name" placeholder="Name">
+        </td>`
+        jQuery(`[id="dexbooster-datatables-modal-filter"] .modal-body form table`).append(`
+            <tr>
+                <td style="border: 0;"><label>${field.label}</label></td>
+                ${input}
+            </tr>
+        `)
     }
 }
 
 function dexbooster_datatables_modal_filter_build_form_buttons() {
     const modal = jQuery(`[id="dexbooster-datatables-modal-filter"]`)
-    modal.find(`.modal-footer`).append(`<input type="submit" class="my-button" style="color: white; padding: 20px" value="Apply">`)
-    modal.find(`.modal-footer`).append(`&nbsp;<input type="reset" class="my-button" style="color: white; padding: 20px" value="Reset">`)
+    modal.find(`.modal-footer`).append(`<input type="submit" class="my-button" style="color: white; padding: 15px !important; line-height: 2px !important" value="&#10004; Apply">`)
+    // modal.find(`.modal-footer`).append(`&nbsp;<input type="reset" class="my-button" style="color: white; padding: 20px" value="Reset">`)
 
-    modal.find(`[type="reset"]`).click(() => {
-        modal.find(`input[type="text"]`).val(``)
-        modal.find(`[type="reset"]`).blur()
-    })
+    // modal.find(`[type="reset"]`).click(() => {
+    //     modal.find(`input[type="text"]`).val(``)
+    //     modal.find(`[type="reset"]`).blur()
+    // })
 
     modal.find(`[type="submit"]`).click(() => {
         modal.modal(`hide`)
