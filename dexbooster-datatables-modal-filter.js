@@ -78,17 +78,17 @@ function dexbooster_datatables_modal_filter_build_form() {
             <td style="border: 0;">
             <div style="display: flex; align-content: stretch;">
                 <span style="background-color: #333333; padding: 0.5em 1em">$</span>
-                <input style="flex: 1 0 auto;background-color: #1d1d22; border: 1px solid #333333;" type="text" name="${field.name}_min" placeholder="Min">
+                <input style="flex: 1 0 auto;background-color: #1d1d22; border: 1px solid #333333; color: white" type="text" name="${field.name}_min" placeholder="Min">
             </div>
             </td><td style="border: 0;">
             <div style="display: flex; align-content: stretch;">
                 <span style="background-color: #333333; padding: 0.5em 1em">$</span>
-                <input style="flex: 1 0 auto;background-color: #1d1d22; border: 1px solid #333333;" type="text" name="${field.name}_max" placeholder="Max">
+                <input style="flex: 1 0 auto;background-color: #1d1d22; border: 1px solid #333333; color: white" type="text" name="${field.name}_max" placeholder="Max">
             </div>
             </td>
         `:
         `<td style="border: 0;" colspan="2">
-            <input style="width:-webkit-fill-available; background-color: #1d1d22; border: 1px solid #333333;" type="text" name="${field.name}_name" placeholder="Name">
+            <input style="width:-webkit-fill-available; background-color: #1d1d22; border: 1px solid #333333; color: white" type="text" name="${field.name}_name" placeholder="Name">
         </td>`
         jQuery(`[id="dexbooster-datatables-modal-filter"] .modal-body form table`).append(`
             <tr>

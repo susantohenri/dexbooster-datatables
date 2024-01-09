@@ -49,20 +49,20 @@ function dexbooster_datatables_ajax()
     })) ? $filter_detail : [];
 
     $filtered = empty($filter_detail) ? $filtered : array_filter($filtered, function ($row) use ($filter_detail) {
-        $result = false;
+        $result = true;
         foreach ($filter_detail as $key => $value) {
             if ('' === $value) continue;
             else {
                 if (-1 < strpos($key, '_min')) {
                     $attr = str_replace('_min', '', $key);
                     $resbef = $result;
-                    $result = $result || $row[$attr] >= $value;
+                    $result = $result && $row[$attr] >= $value;
                 } else if (-1 < strpos($key, '_max')) {
                     $attr = str_replace('_max', '', $key);
-                    $result = $result || $row[$attr] <= $value;
+                    $result = $result && $row[$attr] <= $value;
                 } else if (-1 < strpos($key, '_name')) {
                     $attr = str_replace('_name', '', $key);
-                    $result = $result || $row[$attr] == $value;
+                    $result = $result && $row[$attr] == $value;
                 }
             }
         }
